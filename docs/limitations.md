@@ -19,8 +19,11 @@ molecular-surface model.
   avoids geometry-dependent insertion, deletion, or remeshing.
 - **Float64 required:** gradient and root-accuracy guarantees have not been
   established for float32.
-- **No physical radius model:** callers must provide positive radii and justify
-  them for their application.
+- **Limited physical radius policy:** the dependency-free `Cavity` API requires
+  callers to provide and justify positive radii. The optional `MolecularCavity`
+  convenience uses only the installed PySCF modified-Bondi table, including
+  PySCF's generic fallback entries; it does not select among radius models or
+  establish that those radii are suitable for every application.
 
 These limitations are model properties, not hidden implementation details.
 Applications should test orientation sensitivity, point and shape convergence,

@@ -28,10 +28,16 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/maxscheurer/cavjax"
 
+[project.optional-dependencies]
+pyscf = [
+    "pyscf>=2.6",
+]
+
 [dependency-groups]
 test = [
     "pytest>=8",
     "ase>=3.23",
+    "pyscf>=2.6",
 ]
 dev = [
     {include-group = "test"},

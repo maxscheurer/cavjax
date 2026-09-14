@@ -9,9 +9,10 @@ cotangents into nuclear geometry responses with a reverse-mode VJP.
 > tested, but the current finite-direction envelope has documented shape
 > inflation and orientation dependence. See [limitations](docs/limitations.md).
 
-CavJAX is independent of PySCF and molecular file formats. It accepts arrays;
-applications own atom typing, radius models, unit conversion, and downstream
-energy expressions.
+CavJAX's low-level API is independent of PySCF and molecular file formats. It
+accepts explicit position and radius arrays. An optional PySCF-backed
+`MolecularCavity` adds modified-Bondi radius lookup and a per-atom point-budget
+convenience while remaining array-based.
 
 ## Install for development
 
@@ -26,7 +27,15 @@ CavJAX requires JAX float64 but deliberately does not mutate process-global JAX
 configuration. Set `JAX_ENABLE_X64=1` before starting Python, or enable x64 with
 JAX before constructing a cavity.
 
-## Minimal use
+PySCF is not a mandatory dependency. Install the molecular convenience API with
+
+```bash
+pip install "cavjax[pyscf]"
+```
+
+Importing `cavjax` and using `Cavity` or `CavityConfig` never imports PySCF.
+
+## Low-level explicit-radius use
 
 ```python
 import jax.numpy as jnp
@@ -54,11 +63,58 @@ d_area_d_nuclei = cavity.response(positions, radii, cotangents)
 `surface.normals` points outward. `response` returns shape `(N, 3)` and does not
 materialize a dense surface-by-nucleus Jacobian.
 
+## PySCF-backed molecular use
+
+```python
+import jax.numpy as jnp
+from cavjax import MolecularCavity, SurfaceCotangent
+
+atomic_numbers = jnp.array([8, 1, 1])
+positions_bohr = jnp.array([
+    [0.0, 0.0, 0.0],
+    [1.43, 1.11, 0.0],
+    [-1.43, 1.11, 0.0],
+])
+
+cavity = MolecularCavity(
+    atomic_numbers,
+    points_per_atom=100,
+    radius_scale=1.0,
+    radius_offset=0.0,  # Bohr
+)
+surface = cavity.build(positions_bohr)
+
+cotangents = SurfaceCotangent(
+    points=jnp.zeros_like(surface.points),
+    areas=jnp.ones_like(surface.areas),
+    normals=jnp.zeros_like(surface.normals),
+)
+d_area_d_nuclei = cavity.response(positions_bohr, cotangents)
+```
+
+`MolecularCavity` reads the installed
+`pyscf.solvent.pcm.modified_Bondi` table once at construction and fixes
+
+```text
+effective_radii = radius_scale * modified_Bondi[atomic_numbers] + radius_offset
+target_points = len(atomic_numbers) * points_per_atom
+```
+
+The table and both formulae use Bohr. `points_per_atom` selects one global,
+fixed cavity grid; it is not an atom-centered grid. The requested global target
+is rounded to a supported icosahedral count, available as `cavity.n_points`.
+The effective radii, configuration, and shape count are available as
+`cavity.effective_radii`, `cavity.config`, and
+`cavity.n_shape_directions`. PySCF's positive generic fallback radii are used
+as provided rather than replaced by a second CavJAX table.
+
 ## Scope
 
 CavJAX intentionally provides one cavity algorithm and one vertex-centered
-quadrature path. It does not provide atomic radii, pressure models, electronic
-structure, file readers, visualization, or rejected workshop samplers.
+quadrature path. The optional molecular wrapper provides only PySCF's
+modified-Bondi radius model; CavJAX does not provide additional radius models,
+pressure models, electronic structure, molecular-object adapters, file readers,
+visualization, or rejected workshop samplers.
 
 - [Theory](docs/theory.md)
 - [Parameters](docs/parameters.md)
