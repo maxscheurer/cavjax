@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cavjax"
-version = "0.1.0.dev0"
+version = "0.2.0"
 description = "Differentiable smooth convex molecular cavities with JAX"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -28,10 +28,16 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/maxscheurer/cavjax"
 
+[project.optional-dependencies]
+pyscf = [
+    "pyscf>=2.6",
+]
+
 [dependency-groups]
 test = [
     "pytest>=8",
     "ase>=3.23",
+    "pyscf>=2.6",
 ]
 dev = [
     {include-group = "test"},
